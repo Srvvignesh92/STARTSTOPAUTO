@@ -1,0 +1,78 @@
+import boto3
+import os
+from datetime import datetime
+
+def timefunc():
+    z = datetime.today().strftime("%p")
+
+    if z == "PM":
+        print("Call the stop function")
+        rds_stop()
+    else:
+        print("Call the start function")
+        rds_start()
+
+def rds_start():
+    try:
+        region = os.environ['AWS_REGION']
+        client = boto3.client('rds', region_name=region)
+
+        response = client.describe_db_instances()
+
+        for db in response['DBInstances']:
+            print(db['DBInstanceIdentifier'])
+            dbname = db['DBInstanceIdentifier']
+            arn = db['DBInstanceArn']
+            print(arn)
+            tags = client.list_tags_for_resource(ResourceName=arn)['TagList']
+            print(tags)
+
+            for val in tags:
+                Ky = val['Key']
+                Ve = val['Value']
+
+                if Ky == "AutoStart" and Ve == "True":
+                    print("This DB is Autostart")
+                    client.start_db_instance(DBInstanceIdentifier=dbname)
+                else:
+                    print("This DB can't be Autostart")
+
+        return response
+
+    except Exception as e:
+        print(f"Error in rds_start: {str(e)}")
+
+def rds_stop():
+    try:
+        region = os.environ['AWS_REGION']
+        client = boto3.client('rds', region_name=region)
+
+        response = client.describe_db_instances()
+
+        for db in response['DBInstances']:
+            print(db['DBInstanceIdentifier'])
+            dbname = db['DBInstanceIdentifier']
+            arn = db['DBInstanceArn']
+            print(arn)
+            tags = client.list_tags_for_resource(ResourceName=arn)['TagList']
+            print(tags)
+
+            for val in tags:
+                Ky = val['Key']
+                Ve = val['Value']
+
+                if Ky == "AutoStop" and Ve == "True":
+                    print("This DB is Autostop")
+                    client.stop_db_instance(DBInstanceIdentifier=dbname)
+                else:
+                    print("This DB can't be Autostop")
+
+        return response
+
+    except Exception as e:
+        print(f"Error in rds_stop: {str(e)}")
+
+# Uncomment the line below if you want to test these functions individually
+# timefunc()
+def lambda_handler(event,context):
+    timefunc()
