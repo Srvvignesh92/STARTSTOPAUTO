@@ -1,0 +1,78 @@
+import pytest
+from unittest.mock import patch
+from your_script_file import rds_start, rds_stop, timefunc
+from datetime import datetime
+
+def test_rds_start():
+    with patch('builtins.print') as mock_print:
+        client_mock = patch('boto3.client').start()
+        client_mock_instance = client_mock.return_value
+        client_mock_instance.describe_db_instances.return_value = {
+            'DBInstances': [
+                {
+                    'DBInstanceIdentifier': 'test-db',
+                    'DBInstanceArn': 'arn:aws:rds:us-east-1:123456789012:db:test-db',
+                },
+            ],
+        }
+        client_mock_instance.list_tags_for_resource.return_value = {
+            'TagList': [
+                {'Key': 'AutoStart', 'Value': 'True'},
+            ],
+        }
+
+        rds_start()
+
+        client_mock_instance.describe_db_instances.assert_called_once()
+        client_mock_instance.list_tags_for_resource.assert_called_once_with(
+            ResourceName='arn:aws:rds:us-east-1:123456789012:db:test-db'
+        )
+        client_mock_instance.start_db_instance.assert_called_once_with(DBInstanceIdentifier='test-db')
+        mock_print.assert_called_with('This DB is Autostart')
+
+def test_rds_stop():
+    with patch('builtins.print') as mock_print:
+        client_mock = patch('boto3.client').start()
+        client_mock_instance = client_mock.return_value
+        client_mock_instance.describe_db_instances.return_value = {
+            'DBInstances': [
+                {
+                    'DBInstanceIdentifier': 'test-db',
+                    'DBInstanceArn': 'arn:aws:rds:us-east-1:123456789012:db:test-db',
+                },
+            ],
+        }
+        client_mock_instance.list_tags_for_resource.return_value = {
+            'TagList': [
+                {'Key': 'AutoStop', 'Value': 'True'},
+            ],
+        }
+
+        rds_stop()
+
+        client_mock_instance.describe_db_instances.assert_called_once()
+        client_mock_instance.list_tags_for_resource.assert_called_once_with(
+            ResourceName='arn:aws:rds:us-east-1:123456789012:db:test-db'
+        )
+        client_mock_instance.stop_db_instance.assert_called_once_with(DBInstanceIdentifier='test-db')
+        mock_print.assert_called_with('This DB is Autostop')
+
+def test_timefunc_pm():
+    with patch('builtins.print') as mock_print, patch('your_script_file.rds_stop') as mock_rds_stop:
+        datetime_mock = patch('your_script_file.datetime').start()
+        datetime_mock.today.return_value.strftime.return_value = 'PM'
+
+        timefunc()
+
+        mock_print.assert_called_with('Call the stop function')
+        mock_rds_stop.assert_called_once()
+
+def test_timefunc_am():
+    with patch('builtins.print') as mock_print, patch('your_script_file.rds_start') as mock_rds_start:
+        datetime_mock = patch('your_script_file.datetime').start()
+        datetime_mock.today.return_value.strftime.return_value = 'AM'
+
+        timefunc()
+
+        mock_print.assert_called_with('Call the start function')
+        mock_rds_start.assert_called_once()
