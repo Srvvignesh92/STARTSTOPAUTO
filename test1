@@ -1,0 +1,34 @@
+import pytest
+from unittest.mock import patch
+from your_script_file import rds_start, rds_stop, timefunc
+
+@patch('your_script_file.boto3.client')
+@patch('builtins.print')
+def test_rds_start(mock_print, mock_boto3_client):
+    mock_client_instance = mock_boto3_client.return_value
+    mock_describe_db_instances = mock_client_instance.describe_db_instances
+    mock_describe_db_instances.return_value = {
+        'DBInstances': [
+            {
+                'DBInstanceIdentifier': 'test-db',
+                'DBInstanceArn': 'arn:aws:rds:us-west-2:123456789012:db:test-db',
+            },
+        ],
+    }
+    mock_client_instance.list_tags_for_resource.return_value = {
+        'TagList': [
+            {'Key': 'AutoStart', 'Value': 'True'},
+        ],
+    }
+
+    with patch.dict('your_script_file.os.environ', {'AWS_REGION': 'us-west-2'}):
+        rds_start()
+
+    mock_describe_db_instances.assert_called_once()
+    mock_client_instance.list_tags_for_resource.assert_called_once_with(
+        ResourceName='arn:aws:rds:us-west-2:123456789012:db:test-db'
+    )
+    mock_client_instance.start_db_instance.assert_called_once_with(DBInstanceIdentifier='test-db')
+    mock_print.assert_called_with('This DB is Autostart')
+
+# Similar adjustments for other test functions
