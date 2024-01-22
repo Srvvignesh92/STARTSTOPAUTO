@@ -23,7 +23,12 @@ def test_rds_start(mock_boto3_client):
     with patch.dict('your_script_file.os.environ', {'AWS_REGION': 'us-west-2'}):
         rds_start()
 
+    # Print mock calls for debugging
+    print("Mock Calls:")
+    for call in mock_client_instance.mock_calls:
+        print(call)
+
     # Verify if start_db_instance is called
-    assert mock_client_instance.start_db_instance.called
+    assert mock_client_instance.start_db_instance.called, "start_db_instance not called"
 
 # Similar adjustments for other test functions
