@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from your_script_file import rds_start, rds_stop, timefunc
 
 @patch('your_script_file.boto3.client')
@@ -24,11 +24,26 @@ def test_rds_start(mock_print, mock_boto3_client):
     with patch.dict('your_script_file.os.environ', {'AWS_REGION': 'us-west-2'}):
         rds_start()
 
-    mock_describe_db_instances.assert_called_once()
-    mock_client_instance.list_tags_for_resource.assert_called_once_with(
-        ResourceName='arn:aws:rds:us-west-2:123456789012:db:test-db'
-    )
-    mock_client_instance.start_db_instance.assert_called_once_with(DBInstanceIdentifier='test-db')
-    mock_print.assert_called_with('This DB is Autostart')
+    print("Mock Calls:")
+    for call in mock_client_instance.mock_calls:
+        print(call)
+
+    print("Mock Client Instance Calls:")
+    for call in mock_client_instance.method_calls:
+        print(call)
+
+    expected_calls = [
+        call.describe_db_instances(),
+        call.list_tags_for_resource(ResourceName='arn:aws:rds:us-west-2:123456789012:db:test-db'),
+        call.start_db_instance(DBInstanceIdentifier='test-db'),
+    ]
+
+    assert mock_client_instance.mock_calls == expected_calls
+
+    expected_print_calls = [
+        call('This DB is Autostart'),
+    ]
+
+    assert mock_print.mock_calls == expected_print_calls
 
 # Similar adjustments for other test functions
